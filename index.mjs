@@ -32,9 +32,9 @@ function operacao() {
         } else if (acao === 'Depositar') {
             depositar();
         } else if (acao === 'Sacar') {
-
+            sacar();
         } else {
-            console.log(chalk.bgCyan.black("Muito Obrigado por usar nosso banco!"));
+            console.log(chalk.bgYellow.black("\nMuito obrigado por usar nosso banco!\n"));
             process.exit();
         }
     })
@@ -154,5 +154,64 @@ function adicionarSaldo(nomeConta, deposito) {
 }
 
 function consultarSaldo() {
-    
+    inquirer.prompt([{
+        name: "nome-conta",
+        message: "Qual o nome da sua conta:"
+    }]).then((resposta) => {
+        const nomeConta = resposta['nome-conta']
+
+        if(!checarConta(nomeConta)) {
+            return consultarSaldo();
+        }
+
+        const contaData = recuperarConta(nomeConta);
+        
+        console.log(chalk.bgBlue.black(`\nOlá, você possui R$${contaData.balance} em sua conta!\n`));
+        operacao();
+    }).catch((err) => console.log(err))
+}
+
+function sacar() {
+    inquirer.prompt([{
+        name: 'nome-conta',
+        message: "Qual o nome da sua conta:"
+    }]).then((resposta) => {
+        const nomeConta = resposta['nome-conta'];
+
+        if(!checarConta(nomeConta)) {
+            sacar();
+        } else {
+            inquirer.prompt([{
+                name: 'valor-saque',
+                message: "Quanto você deseja sacar?"
+            }]).then((resposta) => {
+                const valorSaque = resposta['valor-saque'];
+                sacarDinheiro(nomeConta, valorSaque);
+            }).catch((err) => console.log(err))
+        }
+    }).catch((err) => console.log(err))
+}
+
+function sacarDinheiro(nomeConta, saque) {
+    const contaData = recuperarConta(nomeConta);
+
+    if(!saque) {
+        console.log(chalk.bgRed.black("\nOcorreu algum erro, tente novamente mais tarde!\n"));
+        return sacar();
+    }
+
+    if(contaData.balance < saque) {
+        console.log(chalk.bgRed.black("\nOoops! Você não possuí o valor do saque, tente novamente!\n"));
+        return sacar();
+    } 
+
+    contaData.balance = parseFloat(contaData.balance) - parseFloat(saque);
+
+    fs.writeFileSync(`contas/${nomeConta}.json`,
+    contaData.stringify(),
+    (err) => console.log(err));
+
+    console.log(chalk.bgBlue.black(`Você sacou R$${saque} da sua conta!`));
+
+    operacao();
 }
